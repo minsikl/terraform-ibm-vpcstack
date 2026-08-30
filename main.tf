@@ -33,11 +33,9 @@ resource "ibm_is_security_group_rule" "allow_ssh" {
   group     = ibm_is_security_group.sg.id
   direction = "inbound"
   remote    = var.allowed_ssh_cidr
-
-  tcp {
-    port_min = 22
-    port_max = 22
-  }
+  protocol  = "tcp"
+  port_min  = 22
+  port_max  = 22
 }
 
 resource "ibm_is_security_group_rule" "allow_outbound" {

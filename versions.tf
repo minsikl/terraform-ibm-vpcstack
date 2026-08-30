@@ -8,3 +8,7 @@ terraform {
     }
   }
 }
+
+provider "ibm" {
+  region = var.region
+}
