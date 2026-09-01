@@ -2,6 +2,19 @@ data "ibm_resource_group" "rg" {
   name = var.resource_group_name
 }
 
+# ── Key Protect (only looked up when encryption is enabled) ───────
+data "ibm_resource_instance" "kms" {
+  count   = var.boot_volume_encryption ? 1 : 0
+  name    = "lab4193-kms"
+  service = "kms"
+}
+
+data "ibm_kms_keys" "boot_key" {
+  count       = var.boot_volume_encryption ? 1 : 0
+  instance_id = data.ibm_resource_instance.kms[0].guid
+  key_name    = "lab4193-boot-key"
+}
+
 data "ibm_is_image" "vsi_image" {
   name = var.vsi_image_name
 }
@@ -59,6 +72,7 @@ resource "ibm_is_instance" "vsi" {
   }
 
   boot_volume {
-    name = "${var.student_id}-boot"
+    name           = "${var.student_id}-boot"
+    encryption_key = var.boot_volume_encryption ? data.ibm_kms_keys.boot_key[0].keys[0].crn : null
   }
 }

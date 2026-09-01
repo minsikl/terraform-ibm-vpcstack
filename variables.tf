@@ -71,3 +71,9 @@ variable "allowed_ssh_cidr" {
     error_message = "allowed_ssh_cidr must be a valid CIDR block (e.g. 10.0.0.0/16)."
   }
 }
+
+variable "boot_volume_encryption" {
+  description = "Enable boot volume encryption using the lab Key Protect instance (lab4193-kms / lab4193-boot-key). Defaults to false."
+  type        = bool
+  default     = false
+}
