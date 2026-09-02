@@ -2,17 +2,27 @@ data "ibm_resource_group" "rg" {
   name = var.resource_group_name
 }
 
-# ── Key Protect (only looked up when encryption is enabled) ───────
+# ── Key Protect (only looked up when mode is byok) ────────────────
 data "ibm_resource_instance" "kms" {
-  count   = var.boot_volume_encryption ? 1 : 0
-  name    = "lab4193-kms"
+  count   = var.boot_volume_encryption_mode == "byok" ? 1 : 0
+  name    = "lab-kms"
   service = "kms"
 }
 
 data "ibm_kms_keys" "boot_key" {
-  count       = var.boot_volume_encryption ? 1 : 0
+  count       = var.boot_volume_encryption_mode == "byok" ? 1 : 0
   instance_id = data.ibm_resource_instance.kms[0].guid
-  key_name    = "lab4193-boot-key"
+  key_name    = "lab-boot-key"
+}
+
+locals {
+  # "default" → null (IBM provider-managed key applied automatically)
+  # "byok"    → CRN from Key Protect data source (customer-managed key)
+  boot_encryption_key_crn = (
+    var.boot_volume_encryption_mode == "byok"
+    ? data.ibm_kms_keys.boot_key[0].keys[0].crn
+    : null
+  )
 }
 
 data "ibm_is_image" "vsi_image" {
@@ -24,8 +34,11 @@ data "ibm_is_ssh_key" "ssh_key" {
 }
 
 resource "ibm_is_vpc" "vpc" {
-  name           = "${var.student_id}-vpc"
-  resource_group = data.ibm_resource_group.rg.id
+  name              = "${var.student_id}-vpc"
+  resource_group    = data.ibm_resource_group.rg.id
+  # When no_sg_acl_rules is true, suppress all rules IBM Cloud auto-creates
+  # on the default security group and default network ACL.  Requires IBM provider ≥ 1.35.
+  no_sg_acl_rules   = var.no_sg_acl_rules
 }
 
 resource "ibm_is_subnet" "subnet" {
@@ -72,7 +85,7 @@ resource "ibm_is_instance" "vsi" {
   }
 
   boot_volume {
-    name           = "${var.student_id}-boot"
-    encryption_key = var.boot_volume_encryption ? data.ibm_kms_keys.boot_key[0].keys[0].crn : null
+    name       = "${var.student_id}-boot"
+    encryption = local.boot_encryption_key_crn
   }
 }

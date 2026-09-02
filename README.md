@@ -10,31 +10,33 @@ via IBM Cloud Key Protect.
 ```hcl
 module "vpcstack" {
   source  = "app.terraform.io/<ORG>/vpcstack/ibm"
-  version = "1.1.0"
+  version = "1.3.1"
 
   student_id          = "student01"
   resource_group_name = "student01-rg"
-  ssh_key_name        = "lab4193-key"
+  ssh_key_name        = "lab-key"
 }
 ```
 
-With boot volume encryption enabled:
+With all options enabled:
 
 ```hcl
 module "vpcstack" {
   source  = "app.terraform.io/<ORG>/vpcstack/ibm"
-  version = "1.1.0"
+  version = "1.3.1"
 
-  student_id              = "demo-compliant"
-  resource_group_name     = "demo-compliant-rg"
-  ssh_key_name            = "lab4193-key"
-  allowed_ssh_cidr        = "10.0.0.0/8"
-  boot_volume_encryption  = true
+  student_id          = "demo-compliant"
+  resource_group_name = "demo-compliant-rg"
+  ssh_key_name        = "lab-key"
+  allowed_ssh_cidr    = "10.0.0.0/8"
+
+  no_sg_acl_rules             = true
+  boot_volume_encryption_mode = "byok"
 }
 ```
 
-When `boot_volume_encryption = true`, the module looks up the shared Key Protect
-instance (`lab4193-kms`) and root key (`lab4193-boot-key`) automatically — no
+When `boot_volume_encryption_mode = "byok"`, the module looks up the shared Key
+Protect instance (`lab-kms`) and root key (`lab-boot-key`) automatically — no
 CRN needs to be supplied manually.
 
 ## Requirements
@@ -55,7 +57,8 @@ CRN needs to be supplied manually.
 | `vsi_profile` | VSI instance profile | `string` | `"bx2-2x8"` | no |
 | `vsi_image_name` | VSI OS image name | `string` | `"ibm-ubuntu-22-04-1-minimal-amd64-1"` | no |
 | `allowed_ssh_cidr` | CIDR allowed for inbound SSH — set a restricted range to pass Sentinel policy | `string` | `"0.0.0.0/0"` | no |
-| `boot_volume_encryption` | Enable boot volume encryption using the lab Key Protect instance (`lab4193-kms` / `lab4193-boot-key`) | `bool` | `false` | no |
+| `no_sg_acl_rules` | When `true`, removes all auto-created rules from the VPC default security group and default network ACL | `bool` | `false` | no |
+| `boot_volume_encryption_mode` | Boot volume encryption: `"default"` (IBM provider-managed) or `"byok"` (customer-managed via Key Protect) | `string` | `"default"` | no |
 
 ## Outputs
 
@@ -84,8 +87,8 @@ CRN needs to be supplied manually.
 | `ibm_resource_group` | always | Looks up the resource group by name |
 | `ibm_is_image` | always | Looks up the OS image by name |
 | `ibm_is_ssh_key` | always | Looks up the SSH key by name |
-| `ibm_resource_instance` | `boot_volume_encryption = true` | Looks up `lab4193-kms` Key Protect instance |
-| `ibm_kms_keys` | `boot_volume_encryption = true` | Looks up `lab4193-boot-key` root key CRN |
+| `ibm_resource_instance` | `boot_volume_encryption_mode = "byok"` | Looks up `lab-kms` Key Protect instance |
+| `ibm_kms_keys` | `boot_volume_encryption_mode = "byok"` | Looks up `lab-boot-key` root key CRN |
 
 ## Notes
 
@@ -93,8 +96,13 @@ CRN needs to be supplied manually.
   (`restrict-ssh`, soft-mandatory) will warn on apply — override to intentionally
   generate an SCC Workload Protection finding, or set a restricted CIDR to pass.
 - SSH key lookup is by name via `data "ibm_is_ssh_key"` — the key must be
-  pre-registered in the target region (`lab4193-key` in `us-south`).
-- Boot volume encryption requires the `lab4193-kms` Key Protect instance and
-  `lab4193-boot-key` root key to exist in the same account (provisioned by
-  `ibmcloud-setup/`), and an IAM authorization policy allowing VPC Block Storage
-  (`server-protect`) to use the key.
+  pre-registered in the target region.
+- `no_sg_acl_rules` removes rules from both the **default security group** and
+  the **default network ACL** that IBM Cloud auto-creates at VPC creation time.
+  Requires IBM Cloud Terraform provider ≥ 1.35.
+- `boot_volume_encryption_mode` accepts two values:
+  - `"default"` — IBM provider-managed encryption key (IBM controls the key automatically)
+  - `"byok"` — customer-managed key via Key Protect; requires `lab-kms` instance and
+    `lab-boot-key` root key to exist in the account (provisioned by `ibmcloud-setup/`),
+    and an IAM authorization policy allowing VPC Block Storage (`server-protect`) to use
+    the key
