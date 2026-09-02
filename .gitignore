@@ -1,0 +1,41 @@
+# System files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+
+# Environment and secrets
+.env
+.env.local
+.envrc
+*.pem
+ssh_private_key.pem
+lab.env
+
+# Python caching & environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Local workspace/editor settings
+.vscode/
+.idea/
+.claude
+.claude/
+.bob/
+.bob/state/
+*.$diagrams.drawio.bkp
+
+# Lab dynamic state
+/lab4194/.env
+/lab4193/.env
+*.tfvars
+*.terraform*
+*.tfstate*
+AUTOMATION.md

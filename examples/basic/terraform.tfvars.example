@@ -1,0 +1,17 @@
+ibmcloud_api_key = ""               # DO NOT COMMIT
+
+student_id          = "student99"
+resource_group_name = "student99-rg"
+region              = "us-south"
+ssh_key_name        = "lab-key"
+allowed_ssh_cidr    = "0.0.0.0/0"
+
+# Remove auto-created rules from the VPC default security group and default
+# network ACL (inbound self-referential + outbound allow-all on SG; allow-all
+# on ACL).  Set to true for a deny-by-default posture.
+no_sg_acl_rules = false
+
+# Boot volume encryption:
+#   "default" — IBM provider-managed key
+#   "byok"    — Key Protect (lab-kms / lab-boot-key must exist)
+boot_volume_encryption_mode = "default"
